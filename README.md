@@ -1,5 +1,7 @@
 # Rainfall 🌧️
 
+![Rainfall Banner](images/image.png)
+
 **Eternal webpage hosting on the Midnight blockchain**
 
 Rainfall enables anyone to host webpages permanently on the blockchain with complete anonymity. Built on Midnight's privacy-focused architecture, it combines the permanence of blockchain storage with the discoverability of a traditional web browser.
@@ -15,12 +17,16 @@ Rainfall enables anyone to host webpages permanently on the blockchain with comp
 
 ## 🚀 How It Works
 
+![Workflow Demo](images/image%20copy.png)
+
 1. **Create Contract**: Transfer 3 TDUST to generate your unique blockchain contract
 2. **Build Page**: Use our live HTML editor with real-time preview
 3. **Publish**: Set title, description, and deploy to the blockchain forever
 4. **Share**: Get your permanent link that will always work
 
 ## 🌐 Discoverability
+
+![Global Ledger Interface](images/image%20copy%202.png)
 
 Rainfall includes a **global main ledger** that indexes all public pages, creating a blockchain-based web browser experience. Users can:
 
@@ -108,6 +114,8 @@ Built in 48 hours during a hackathon by:
 - **Omar Emiliano Sanchez Villegas**
 
 ## 🏗️ Architecture
+
+![Architecture Overview](images/image%20copy%203.png)
 
 - **Frontend**: React-based web interface
 - **Blockchain**: Midnight network

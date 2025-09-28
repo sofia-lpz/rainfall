@@ -4,12 +4,13 @@ import { getSiteContent } from '../dataProvider';
 import { useEffect, useState } from 'react';
 
 interface PageProps {
-    params: {
+    params: Promise<{
         address: string[];
-    };
+    }>;
 }
 
-export default function AddressPage({ params }: PageProps) {
+export default async function AddressPage({ params }: PageProps) {
+    const resolvedParams = await params;
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
 
@@ -17,7 +18,7 @@ export default function AddressPage({ params }: PageProps) {
         const loadContent = async () => {
             try {
                 // Reconstruct the address from URL segments
-                const fullAddress = params.address.join('/');
+                const fullAddress = resolvedParams.address.join('/');
                 
                 // Decode the address in case it was URL encoded
                 const decodedAddress = decodeURIComponent(fullAddress);
@@ -40,13 +41,13 @@ export default function AddressPage({ params }: PageProps) {
             }
         };
 
-        if (params.address && params.address.length > 0) {
+        if (resolvedParams.address && resolvedParams.address.length > 0) {
             loadContent();
         } else {
             setError('No address provided');
             setLoading(false);
         }
-    }, [params.address]);
+    }, [resolvedParams.address]);
 
     if (loading) {
         return (
