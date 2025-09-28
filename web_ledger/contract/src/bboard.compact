@@ -1,0 +1,110 @@
+// This file is part of midnightntwrk/example-counter.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// You may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+pragma language_version >= 0.16 && <= 0.17;
+import CompactStandardLibrary;
+
+export enum State {
+  VACANT,
+  OCCUPIED
+}
+
+export enum PublicState {
+  TRUE,
+  FALSE
+}
+
+export ledger state: State;
+export ledger message: Maybe<Opaque<"string">>;
+export ledger title: Maybe<Opaque<"string">>;
+export ledger description: Maybe<Opaque<"string">>;
+export ledger sequence: Counter;
+export ledger owner: Bytes<32>;
+
+// New public ledger classes
+export ledger isPublic: PublicState;
+export ledger privateWeb: Maybe<Opaque<"string">>;
+
+constructor() {
+  state = State.VACANT;
+  message = none<Opaque<"string">>();
+  title = none<Opaque<"string">>();
+  description = none<Opaque<"string">>();
+  sequence.increment(1);
+  
+  // Initialize new fields - isPublic starts as true
+  isPublic = PublicState.TRUE;
+  privateWeb = none<Opaque<"string">>();
+}
+
+witness localSecretKey(): Bytes<32>;
+
+export circuit post(newMessage: Opaque<"string">): [] {
+  assert(state == State.VACANT, "Attempted to post to an occupied board");
+  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
+  message = disclose(some<Opaque<"string">>(newMessage));
+  state = State.OCCUPIED;
+}
+
+export circuit updateTitle(newTitle: Opaque<"string">): [] {
+  assert(state == State.OCCUPIED, "Cannot update title on an empty board");
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Only the owner can update the title");
+  title = disclose(some<Opaque<"string">>(newTitle));
+}
+
+export circuit updateDescription(newDescription: Opaque<"string">): [] {
+  assert(state == State.OCCUPIED, "Cannot update description on an empty board");
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Only the owner can update the description");
+  description = disclose(some<Opaque<"string">>(newDescription));
+}
+
+// New circuit for setting privateWeb - expects 2 values
+export circuit setPrivateWeb(newPrivateWeb: Opaque<"string">, newMessage: Opaque<"string">): [] {
+  //assert(state == State.OCCUPIED, "Cannot set private web on an empty board");
+  
+  // Check that the owner is the one making the change
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Only the owner can set private web");
+  
+  // When privateWeb is changed to a new value:
+  // 1. Set the private web content
+  privateWeb = disclose(some<Opaque<"string">>(newPrivateWeb));
+  
+  // 2. isPublic should now be false
+  isPublic = PublicState.FALSE;
+  
+  // 3. Set the new message content (manually provided)
+  message = disclose(some<Opaque<"string">>(newMessage));
+}
+
+export circuit takeDown(): Opaque<"string"> {
+  assert(state == State.OCCUPIED, "Attempted to take down post from an empty board");
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Attempted to take down post, but not the current owner");
+  const formerMsg = message.value;
+  state = State.VACANT;
+  sequence.increment(1);
+  message = none<Opaque<"string">>();
+  title = none<Opaque<"string">>();
+  description = none<Opaque<"string">>();
+  
+  // Reset new fields when taking down
+  isPublic = PublicState.TRUE;
+  privateWeb = none<Opaque<"string">>();
+  
+  return formerMsg;
+}
+
+export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
+}

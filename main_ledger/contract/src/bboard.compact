@@ -1,0 +1,90 @@
+// This file is part of midnightntwrk/example-counter.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// You may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+pragma language_version >= 0.16 && <= 0.17;
+import CompactStandardLibrary;
+
+export ledger sequence: Counter;
+export ledger owner: Bytes<32>;
+
+// Dynamic list of contract addresses with names (format: "address,title")
+export ledger addresses: List<Opaque<"string">>;
+
+// Counter that increments for each entry in addresses array
+export ledger addressCount: Counter;
+
+constructor() {
+  // Initialize empty addresses list
+  addresses.resetToDefault();
+  
+  // Initialize address counter to 0
+  addressCount.resetToDefault();
+  
+  // Initialize sequence
+  sequence.increment(1);
+}
+
+witness localSecretKey(): Bytes<32>;
+
+export circuit initialize(): [] {
+  owner = disclose(publicKey(localSecretKey(), sequence as Field as Bytes<32>));
+}
+
+// Add a new contract address with title (only owner can do this)
+// Format: "02006ce12fe40e39b522dbad0237ad97b27c0e58e59c19ce95e5c558a34157a1ea43,title"
+export circuit addAddress(addressWithTitle: Opaque<"string">): [] {
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Only the owner can add addresses");
+  
+  // Add the new address entry to the front of the list
+  addresses.pushFront(disclose(addressWithTitle));
+  
+  // Increment the counter
+  addressCount.increment(1);
+}
+
+// Clear all addresses (owner only)
+export circuit removeAllAddresses(): [] {
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Only the owner can remove addresses");
+  
+  // Reset the list to empty
+  addresses.resetToDefault();
+  
+  // Reset the counter to 0
+  addressCount.resetToDefault();
+}
+
+// Remove the first address from the list (owner only)
+export circuit removeFirstAddress(): [] {
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Only the owner can remove addresses");
+  assert(!addresses.isEmpty(), "Cannot remove from empty list");
+  
+  // Remove the first element
+  addresses.popFront();
+  
+  // Decrement the counter
+  addressCount.decrement(1);
+}
+
+export circuit clear(): [] {
+  assert(owner == publicKey(localSecretKey(), sequence as Field as Bytes<32>), "Only the owner can clear addresses");
+  
+  // Clear the addresses list and reset counter
+  addresses.resetToDefault();
+  addressCount.resetToDefault();
+  sequence.increment(1);
+}
+
+export circuit publicKey(sk: Bytes<32>, sequence: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "bboard:pk:"), sequence, sk]);
+}
